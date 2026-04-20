@@ -159,6 +159,33 @@
   const Y26 = DATA.years["2026"];
   const Y23 = DATA.years["2023"];
 
+  const MERGE_GROUPS = {
+    "ДПС": { canonical: "ДПС_АПС", label: "ДПС + АПС" },
+    "АПС": { canonical: "ДПС_АПС", label: "ДПС + АПС" }
+  };
+  function mergeGroups(parties) {
+    const out = [];
+    const byKey = new Map();
+    parties.forEach(p => {
+      const g = MERGE_GROUPS[p.canonical];
+      if (!g) { out.push(p); return; }
+      const existing = byKey.get(g.canonical);
+      if (existing) {
+        existing.votes += p.votes;
+        existing.pct = (existing.pct || 0) + (p.pct || 0);
+      } else {
+        const merged = Object.assign({}, p, { party: g.label, short: g.label, canonical: g.canonical });
+        byKey.set(g.canonical, merged);
+        out.push(merged);
+      }
+    });
+    return out;
+  }
+  [Y26, Y23].forEach(Y => {
+    Y.national.parties = mergeGroups(Y.national.parties);
+    Object.values(Y.regions).forEach(r => { r.parties = mergeGroups(r.parties); });
+  });
+
   const fmt = n => (n == null || isNaN(n)) ? "—" : new Intl.NumberFormat("bg-BG").format(Math.round(n));
   const pct = (v, d = 2) => (v == null || isNaN(v)) ? "—" : v.toFixed(d) + "%";
   const signed = (v, d=2) => (v > 0 ? "+" : "") + v.toFixed(d);
